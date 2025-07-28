@@ -7,9 +7,11 @@ export default function TextToShader() {
   const [compiling, setCompiling] = useState(false);
   const canvasRef = useRef(null);
   const animationRef = useRef(null);
+  const [allShader, setAllshader] = useState([])
+  const [suggestion, setSuggestion] = useState([])
 
-  const extractGLSLCode = (text) => {
-    const match = text.match(/```glsl\s*([\s\S]*?)\s*```/);
+  const extractCleanData = (text) => {
+    const match = text.match(/```json\s*([\s\S]*?)\s*```/);
     return match ? match[1].trim() : text.trim();
   };
 
@@ -21,7 +23,7 @@ export default function TextToShader() {
     setShader("");
 
     try {
-      const res = await fetch("https://backend-cold-snowflake-4736.fly.dev/api/shader", {
+      const res = await fetch("http://localhost:4000/api/shader", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt }),
@@ -35,9 +37,11 @@ export default function TextToShader() {
         return;
       }
 
-      const cleanCode = extractGLSLCode(data.shader);
-      setShader(cleanCode);
-      renderShader(cleanCode);
+      const cleaned = extractCleanData(data.shader);
+      const shaderDataWithSuggestion = JSON.parse(cleaned);
+
+      renderShader(shaderDataWithSuggestion.shader);
+      setSuggestion(shaderDataWithSuggestion.suggestions);
     } catch (e) {
       setError("Backend error: " + e.message);
       setShader("// Backend error");
@@ -46,7 +50,7 @@ export default function TextToShader() {
     }
   };
 
-  const renderShader = (fragmentShaderSource) => {
+  const renderShader = (fragmentShaderSource) => {    
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -133,6 +137,8 @@ export default function TextToShader() {
   };
 
   useEffect(() => {
+    // getAllShaders();
+    
     return () => {
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
@@ -140,11 +146,30 @@ export default function TextToShader() {
     };
   }, []);
 
+  // const getAllShaders = async () => {
+  //   const response = await fetch('http://localhost:4000/api/shaders');
+  //   const data = await response.json();
+  //   setAllshader(data.shaders)
+  // };
+
   return (
-    <div className="p-6 max-w-4xl mx-auto">
+    <div className="p-6 mx-auto">
       <h2 className="text-2xl font-bold mb-4">Text-to-Shader</h2>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div>
+          <h1>All shader</h1>
+          {
+            suggestion.map((sugg) => {
+              return (
+                <div className="bg-blue-200 p-2 m-2 rounded-xl">
+                  {sugg}
+                </div>
+              )
+            })
+          }
+        </div>
+
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium mb-2">Describe your shader:</label>
